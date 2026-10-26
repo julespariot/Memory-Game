@@ -226,6 +226,24 @@ body {
   border-radius: 4px;
 }
 
+/* ---------- Footer ---------- */
+
+.footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 20px;
+  font-size: 12px;
+}
+
+.footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.footer a:hover { text-decoration: underline; }
+
 /* ---------- Card ---------- */
 
 .card {
