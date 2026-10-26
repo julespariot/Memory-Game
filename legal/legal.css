@@ -1,9 +1,16 @@
 /* Styles partagés des pages légales — réutilise la charte de styles.css */
+/* styles.css impose au body height:100vh + overflow:hidden (pensé pour le plateau
+   de jeu sans scroll) : on l'annule ici pour retrouver un scroll de page normal,
+   nécessaire vu la longueur du contenu légal. */
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   line-height: 1.6;
+  height: auto;
+  min-height: 100vh;
+  display: block;
+  overflow: visible;
 }
 
 .legal {
