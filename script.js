@@ -350,7 +350,7 @@
 
     const boardGap = parseFloat(getComputedStyle(board).columnGap) || 0;
 
-    const shape = bestGridShape(deck.length, availWidth, availHeight, boardGap, level.id === 3);
+    const shape = bestGridShape(deck.length, availWidth, availHeight, boardGap, false);
 
     let cardSize = Math.floor(shape.size);
     cardSize = Math.max(MIN_CARD_SIZE, Math.min(MAX_CARD_SIZE, cardSize));
