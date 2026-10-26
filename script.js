@@ -30,6 +30,7 @@
     {
       id: 1,
       label: 'Niveau 1 · Facile',
+      shortLabel: 'Facile',
       color: '#029ADB',
       textOnActive: '#10151B',
       images: cardList(1, [2, 4, 5, 6, 10, 14, 15, 20, 22, 27]),
@@ -37,6 +38,7 @@
     {
       id: 2,
       label: 'Niveau 2 · Moyen',
+      shortLabel: 'Moyen',
       color: '#019A46',
       textOnActive: '#10151B',
       images: cardList(2, [1, 2, 4, 5, 6, 8, 10, 11, 14, 15, 17, 19, 20, 22, 23, 25, 27, 28]),
@@ -44,6 +46,7 @@
     {
       id: 3,
       label: 'Niveau 3 · Difficile',
+      shortLabel: 'Difficile',
       color: '#0E4793',
       textOnActive: '#FFFFFF',
       images: Array.from({ length: 28 }, (_, i) => `assets/cards/level3/card-${String(i + 1).padStart(2, '0')}.png`),
@@ -198,7 +201,8 @@
       btn.disabled = isDisabled;
       btn.title = isDisabled ? 'Ajoute des images dans assets/cards/level3 pour débloquer ce niveau' : '';
 
-      btn.innerHTML = level.label + (isDisabled ? '<span class="level-btn__tag">Bientôt</span>' : '');
+      btn.innerHTML = `<span class="level-btn__full">${level.label}</span><span class="level-btn__short">${level.shortLabel}</span>`
+        + (isDisabled ? '<span class="level-btn__tag">Bientôt</span>' : '');
 
       btn.addEventListener('click', () => {
         if (currentLevelId === level.id) return;
@@ -616,6 +620,9 @@
       ? `<p class="modal__record-new">${badges.join(' · ')}</p>`
       : `<p class="modal__record-hint">Record perso : ${nextBest.score} pts en ${nextBest.moves} coups</p>`;
 
+    // Sécurité contre un pinch-zoom resté actif pendant la partie (mobile) :
+    // sans ça la modale (position: fixed) peut apparaître décalée/zoomée.
+    window.scrollTo(0, 0);
     winModal.hidden = false;
     loadLeaderboard(level, { score, moves, timeSeconds: timerSeconds });
   }
