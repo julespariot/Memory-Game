@@ -269,6 +269,12 @@ body {
 .card.is-matched,
 .card.is-disabled { cursor: default; }
 
+.card:focus-visible {
+  outline: 3px solid var(--ring-active);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
 .card-inner {
   position: relative;
   width: 100%;

@@ -283,7 +283,17 @@
         </div>
       `;
 
+      cardEl.tabIndex = 0;
+      cardEl.setAttribute('role', 'button');
+      cardEl.setAttribute('aria-label', 'Carte mémoire, face cachée');
+      cardEl.setAttribute('aria-pressed', 'false');
+
       cardEl.addEventListener('click', () => onCardClick(card.id, cardEl));
+      cardEl.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+        e.preventDefault();
+        onCardClick(card.id, cardEl);
+      });
       board.appendChild(cardEl);
     });
   }
@@ -366,6 +376,18 @@
     levelInfo.textContent = `${level.label} — grille ${shape.cols}×${shape.rows} (${level.images.length} paires)`;
   }
 
+  // Reflète l'état visuel (retournée / trouvée) d'une carte pour les
+  // lecteurs d'écran et la navigation clavier.
+  function syncCardAria(el) {
+    const isMatched = el.classList.contains('is-matched');
+    const isFlipped = isMatched || el.classList.contains('is-flipped');
+    el.setAttribute('aria-pressed', String(isFlipped));
+    el.setAttribute('aria-label', isMatched
+      ? 'Carte mémoire, trouvée'
+      : (isFlipped ? 'Carte mémoire, retournée' : 'Carte mémoire, face cachée'));
+    el.tabIndex = isMatched ? -1 : 0;
+  }
+
   // Enchaîner plus vite : si deux cartes fautives sont encore affichées et que
   // le joueur clique sur une autre carte face cachée, on accélère leur retour
   // face cachée au lieu de le forcer à attendre la fin de l'animation normale.
@@ -377,6 +399,8 @@
     b.el.classList.add('is-quick-hide');
     a.el.classList.remove('is-flipped', 'is-active', 'is-wrong');
     b.el.classList.remove('is-flipped', 'is-active', 'is-wrong');
+    syncCardAria(a.el);
+    syncCardAria(b.el);
     window.setTimeout(() => {
       a.el.classList.remove('is-quick-hide');
       b.el.classList.remove('is-quick-hide');
@@ -407,6 +431,7 @@
     }
 
     cardEl.classList.add('is-flipped', 'is-active');
+    syncCardAria(cardEl);
     flipped.push({ id, el: cardEl, card: deck.find((c) => c.id === id) });
 
     if (flipped.length === 2) {
@@ -420,6 +445,8 @@
           b.el.classList.remove('is-active');
           a.el.classList.add('is-matched', 'is-disabled');
           b.el.classList.add('is-matched', 'is-disabled');
+          syncCardAria(a.el);
+          syncCardAria(b.el);
           matchedCount += 1;
           renderStats();
           flipped = [];
@@ -440,10 +467,12 @@
         // La 2e carte retournée reste visible une seconde de plus que la 1re.
         const hideATimeout = window.setTimeout(() => {
           a.el.classList.remove('is-flipped', 'is-active', 'is-wrong');
+          syncCardAria(a.el);
         }, WRONG_RING_DELAY + MISMATCH_FIRST_HIDE_DELAY);
 
         const hideBTimeout = window.setTimeout(() => {
           b.el.classList.remove('is-flipped', 'is-active', 'is-wrong');
+          syncCardAria(b.el);
           pendingMismatch = null;
           flipped = [];
           locked = false;
