@@ -551,6 +551,10 @@ body {
   .header__title { font-size: 15px; }
   .header__subtitle { font-size: 10px; }
 
+  .header__brand { order: 1; }
+
+  .header > .btn--primary { order: 2; }
+
   .levels {
     order: 3;
     width: 100%;
@@ -579,7 +583,10 @@ body {
      mm:ss, nombre, étoiles) : le libellé au-dessus reste accessible aux
      lecteurs d'écran mais n'occupe plus de place à l'écran. */
   .header__stats {
-    gap: 6px;
+    order: 4;
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
     align-items: center;
   }
 
