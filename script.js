@@ -55,8 +55,8 @@
   // (Dashboard > Settings > API). La clé "anon public" est faite pour être
   // exposée côté client : les règles RLS côté serveur limitent ce qu'elle
   // peut faire (lecture publique, insertion contrainte, jamais de modif/suppr).
-  const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const SUPABASE_URL = 'https://sgzrjagbcmzeizvglsin.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnenJqYWdiY216ZWl6dmdsc2luIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwMDkyMjgsImV4cCI6MjEwODU4NTIyOH0.a_9ZPaZ7EPPpGXETU9cS02FO8Is6lS3jkiykJTD0BN8';
   const LEADERBOARD_SIZE = 10;
 
   const isSupabaseConfigured = /^https?:\/\//.test(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 20;

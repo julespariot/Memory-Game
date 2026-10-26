@@ -79,8 +79,28 @@ Top 10 par niveau, visible par tous les joueurs, avec saisie d'un pseudo depuis 
   - `renderBoardRows(...)` : rendu DOM via `textContent` (jamais `innerHTML` sur un pseudo venant d'un autre joueur — défense en profondeur contre une injection XSS si jamais les RLS étaient contournées).
   - Markup dans `index.html` (`#boardSection` dans la modale) et styles dans `styles.css` (section "Classement (Top 10)"), classes identiques à la maquette B validée.
   - `.modal__card` a maintenant `max-height: calc(100vh - 40px); overflow-y: auto;` pour rester scrollable sur petit écran vu que la liste ajoute pas mal de hauteur.
-- **Reste à faire** : récupérer le Project URL + la clé `anon public` Supabase (jamais la `service_role`, qui doit rester secrète côté serveur) et les coller dans les deux constantes de `script.js`. Exécuter le schéma SQL ci-dessous dans l'éditeur SQL Supabase si ce n'est pas déjà fait.
-- **Schéma SQL** (table `scores`) : colonnes `id uuid`, `level_id int`, `pseudo text`, `score int`, `moves int`, `time_seconds int`, `created_at timestamptz`. RLS activé : policy `select` publique, policy `insert` publique mais contrainte (pseudo 1–16 caractères, score plafonné selon `level_id` — 1000/1800/2800 pour niveaux 1/2/3 — pour limiter la triche côté client). **Pas** de policy `update`/`delete` : un score soumis ne peut plus être modifié/supprimé depuis le navigateur. Détail complet donné à l'utilisateur en session, à réutiliser si la table doit être recréée.
+- **Fait** : Project URL + clé `anon public` Supabase (jamais la `service_role`, qui doit rester secrète côté serveur) collées dans les deux constantes de `script.js`. Projet Supabase : `sgzrjagbcmzeizvglsin`. Schéma SQL exécuté (voir ci-dessous), connexion vérifiée (requête REST sur `scores` → 200, table vide).
+- **Schéma SQL** (table `scores`) : colonnes `id uuid`, `level_id int`, `pseudo text`, `score int`, `moves int`, `time_seconds int`, `created_at timestamptz`. RLS activé : policy `select` publique, policy `insert` publique mais contrainte (pseudo 1–16 caractères, score plafonné selon `level_id` — 1000/1800/2800 pour niveaux 1/2/3 — pour limiter la triche côté client). **Pas** de policy `update`/`delete` : un score soumis ne peut plus être modifié/supprimé depuis le navigateur. SQL exact :
+  ```sql
+  create table public.scores (
+    id uuid primary key default gen_random_uuid(),
+    level_id integer not null check (level_id in (1, 2, 3)),
+    pseudo text not null check (char_length(pseudo) between 1 and 16),
+    score integer not null check (
+      (level_id = 1 and score <= 1000) or
+      (level_id = 2 and score <= 1800) or
+      (level_id = 3 and score <= 2800)
+    ),
+    moves integer not null check (moves > 0),
+    time_seconds integer not null check (time_seconds > 0),
+    created_at timestamptz not null default now()
+  );
+
+  alter table public.scores enable row level security;
+
+  create policy "Lecture publique" on public.scores for select using (true);
+  create policy "Insertion publique" on public.scores for insert with check (true);
+  ```
 - **Implication légale** : une fois les identifiants branchés, ça collecte réellement pseudo + score côté serveur → active la section RGPD déjà rédigée dans `legal/confidentialite.html` (actuellement marquée "à adapter" en attendant cette mise en service).
 
 ## État / suivi
@@ -92,7 +112,7 @@ Top 10 par niveau, visible par tous les joueurs, avec saisie d'un pseudo depuis 
 - [x] Planche-contact `cards/IMG_3017.PNG` découpée en 28 cartes individuelles dans `cards/all28/`.
 - [x] Sélection manuelle des 3 niveaux faite par l'utilisateur (10 / 18 / 28 cartes) et synchronisée dans `script.js` (`cardList(...)`).
 - [x] Gabarits légaux créés (`legal/mentions-legales.html`, `confidentialite.html`, `cgu.html`) — voir ci-dessous pour ce qui bloque encore.
-- [ ] **Classement en ligne (top 10/niveau, Supabase, design B)** : code en place, en attente du Project URL + clé anon Supabase (à coller dans `script.js`) et de l'exécution du schéma SQL côté Supabase pour devenir fonctionnel.
+- [x] **Classement en ligne (top 10/niveau, Supabase, design B)** : Project URL + clé anon configurées dans `script.js`, schéma SQL exécuté côté Supabase, connexion vérifiée. Projet versionné sur GitHub (`github.com/julespariot/Memory-Game`). Reste à tester une soumission de score réelle dans le navigateur.
 - [ ] **Pages légales pas encore complétées ni reliées au site** : il manque le statut de l'éditeur (particulier/auto-entrepreneur/société), un e-mail de contact, et l'hébergeur prévu pour la mise en ligne. Une fois fournis : remplacer les `[À COMPLÉTER]` et ajouter les liens (ex. footer) dans `index.html`.
 - [ ] `.wireframes-scratch/` : dossier de travail issu de l'analyse de la maquette d'origine, peut être supprimé si plus utile.
 
