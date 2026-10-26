@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head>
+<body>
+
+  <header class="header">
+    <div class="header__title">Memory Game</div>
+
+    <nav class="levels" aria-label="Niveaux" id="levels"></nav>
+
+    <div class="header__stats">
+      <div class="stat">
+        <span class="stat__label">Temps</span>
+        <span class="stat__badge stat__badge--time mono" id="timer">00:00</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Coups</span>
+        <span class="stat__badge stat__badge--moves mono" id="moves">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat__label">Score</span>
+        <span class="stat__badge stat__badge--score mono" id="score">
+          <span class="stars" id="stars">☆☆☆</span> <span id="points">0</span>
+        </span>
+      </div>
+      <button type="button" class="btn btn--primary" id="newGameBtn" aria-label="Nouvelle partie">
+        <span class="btn__icon" aria-hidden="true">↻</span>
+        <span class="btn__label">Nouvelle partie</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="main__info" id="levelInfo"></div>
+    <div class="board" id="board"></div>
+    <div class="empty-state" id="emptyState" hidden>
+      <p>🎨 Ce niveau arrive bientôt.</p>
+      <p class="empty-state__hint">Ajoute des images dans <code>assets/cards/level3</code> pour le débloquer.</p>
+    </div>
+  </main>
+
+  <div class="modal" id="winModal" hidden>
+    <div class="modal__card">
+      <h2 class="modal__title">Bravo, niveau terminé !</h2>
+      <div class="modal__stats">
+        <div class="modal__stat">
+          <span class="stat__label">Temps</span>
+          <span class="stat__badge stat__badge--time mono" id="modalTime">00:00</span>
+        </div>
+        <div class="modal__stat">
+          <span class="stat__label">Coups</span>
+          <span class="stat__badge stat__badge--moves mono" id="modalMoves">0</span>
+        </div>
+        <div class="modal__stat">
+          <span class="stat__label">Score</span>
+          <span class="stat__badge stat__badge--score mono">
+            <span class="stars" id="modalStars">☆☆☆</span> <span id="modalPoints">0</span>
+          </span>
+        </div>
+      </div>
+      <div class="modal__record" id="modalRecord"></div>
+
+      <div class="board-section" id="boardSection">
+        <div class="board-heading">
+          <h3>Top 10 — <span id="boardLevelLabel"></span></h3>
+          <span>Tous les joueurs</span>
+        </div>
+        <div class="board-list" id="boardList"></div>
+        <p class="board-status" id="boardStatus" aria-live="polite"></p>
+      </div>
+
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" id="modalCloseBtn">Fermer</button>
+        <button type="button" class="btn btn--primary" id="modalReplayBtn">Rejouer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

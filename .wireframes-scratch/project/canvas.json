@@ -1,0 +1,17 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-23T00:00:00Z" },
+  "title": "Memory Game Wireframes",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 1180, "title": "Web App", "expand": "fill", "is_interactive": true },
+    "Desktop.dc.html": { "x": 1360, "y": 0, "w": 1440, "h": 960, "title": "Desktop App", "is_interactive": true },
+    "Mobile.dc.html": { "x": 2880, "y": 0, "w": 390, "h": 844, "title": "Mobile App", "is_interactive": true }
+  },
+  "order": ["Main.dc.html", "Desktop.dc.html", "Mobile.dc.html"],
+  "notes": {
+    "n1": { "x": 0, "y": -280, "text": "Memory Game — Wireframes (Web · Desktop · Mobile)", "kind": "title1", "maxW": 3270 }
+  },
+  "designSystems": []
+}
