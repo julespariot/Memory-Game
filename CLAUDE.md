@@ -2,6 +2,8 @@
 
 Web app de jeu de mémoire (memory) — HTML/CSS/JS vanilla, sans framework ni étape de build.
 
+**En ligne** : [memory.juliolebarbo.com](https://memory.juliolebarbo.com) (GitHub Pages). Code source sur [github.com/julespariot/Memory-Game](https://github.com/julespariot/Memory-Game).
+
 ## Lancer le projet
 
 ```bash
@@ -112,8 +114,9 @@ Top 10 par niveau, visible par tous les joueurs, avec saisie d'un pseudo depuis 
 - [x] Planche-contact `cards/IMG_3017.PNG` découpée en 28 cartes individuelles dans `cards/all28/`.
 - [x] Sélection manuelle des 3 niveaux faite par l'utilisateur (10 / 18 / 28 cartes) et synchronisée dans `script.js` (`cardList(...)`).
 - [x] Gabarits légaux créés (`legal/mentions-legales.html`, `confidentialite.html`, `cgu.html`) — voir ci-dessous pour ce qui bloque encore.
-- [x] **Classement en ligne (top 10/niveau, Supabase, design B)** : Project URL + clé anon configurées dans `script.js`, schéma SQL exécuté côté Supabase, connexion vérifiée. Projet versionné sur GitHub (`github.com/julespariot/Memory-Game`). Reste à tester une soumission de score réelle dans le navigateur.
-- [ ] **Pages légales pas encore complétées ni reliées au site** : il manque le statut de l'éditeur (particulier/auto-entrepreneur/société), un e-mail de contact, et l'hébergeur prévu pour la mise en ligne. Une fois fournis : remplacer les `[À COMPLÉTER]` et ajouter les liens (ex. footer) dans `index.html`.
+- [x] **Classement en ligne (top 10/niveau, Supabase, design B)** : Project URL + clé anon configurées dans `script.js`, schéma SQL exécuté côté Supabase, connexion vérifiée, soumission de score testée en conditions réelles (pseudo + score bien arrivés en base). Projet versionné sur GitHub (`github.com/julespariot/Memory-Game`).
+- [x] **Mise en ligne** : site déployé via GitHub Pages (Settings → Pages, branche `main`, racine `/`), domaine personnalisé `memory.juliolebarbo.com` (sous-domaine de l'e-shop `juliolebarbo.com`, DNS géré chez IONOS — enregistrement CNAME `memory` → `julespariot.github.io.`), HTTPS actif (certificat Let's Encrypt, "Enforce HTTPS" coché). Le fichier `CNAME` à la racine du repo gère ce rattachement — ne pas le supprimer sans reconfigurer le domaine dans Settings → Pages.
+- [ ] **Pages légales pas encore complétées ni reliées au site** : il manque le statut de l'éditeur (particulier/auto-entrepreneur/société) et un e-mail de contact. L'hébergeur est maintenant connu (GitHub Pages, domaine `memory.juliolebarbo.com`). Une fois le reste fourni : remplacer les `[À COMPLÉTER]` et ajouter les liens (ex. footer) dans `index.html`.
 - [ ] `.wireframes-scratch/` : dossier de travail issu de l'analyse de la maquette d'origine, peut être supprimé si plus utile.
 
 ## Notes de session
