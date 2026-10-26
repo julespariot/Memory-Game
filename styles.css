@@ -53,13 +53,22 @@ body {
   flex-wrap: wrap;
 }
 
-.header__title {
+.header__brand {
   align-self: flex-end;
   margin-bottom: 8px;
+}
+
+.header__title {
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0.01em;
   text-transform: uppercase;
+}
+
+.header__subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .levels {
@@ -534,6 +543,7 @@ body {
   }
 
   .header__title { font-size: 15px; }
+  .header__subtitle { font-size: 10px; }
 
   .levels {
     order: 3;
