@@ -146,6 +146,7 @@
   const boardLevelLabel = document.getElementById('boardLevelLabel');
   const boardList = document.getElementById('boardList');
   const boardStatus = document.getElementById('boardStatus');
+  const boardOutsideEntry = document.getElementById('boardOutsideEntry');
 
   // ---------- State ----------
   let currentLevelId = LEVELS.find((l) => l.images.length > 0)?.id ?? LEVELS[0].id;
@@ -576,6 +577,28 @@
     if (error) throw error;
   }
 
+  // Position d'un score parmi TOUS les scores enregistrés pour ce niveau
+  // (pas seulement le top 10) : utilisé pour le joueur hors classement, qui
+  // peut quand même enregistrer son score et voir "tu es Ne sur M joueurs".
+  // Deux requêtes de comptage (RLS "Lecture publique" déjà en place) plutôt
+  // que de rapatrier toutes les lignes.
+  async function fetchRank(levelId, score) {
+    const { count: better, error: betterError } = await supabaseClient
+      .from('scores')
+      .select('*', { count: 'exact', head: true })
+      .eq('level_id', levelId)
+      .gt('score', score);
+    if (betterError) throw betterError;
+
+    const { count: total, error: totalError } = await supabaseClient
+      .from('scores')
+      .select('*', { count: 'exact', head: true })
+      .eq('level_id', levelId);
+    if (totalError) throw totalError;
+
+    return { rank: (better ?? 0) + 1, total: total ?? 0 };
+  }
+
   // ---------- Classement : rendu ----------
   // `listEl` : conteneur cible (celui de la modale de victoire ou celui de la
   // modale "Classement" consultable librement). `rows` : lignes à afficher
@@ -627,6 +650,8 @@
     boardLevelLabel.textContent = level.label;
     boardList.innerHTML = '';
     boardStatus.textContent = '';
+    boardOutsideEntry.hidden = true;
+    boardOutsideEntry.innerHTML = '';
 
     if (!isSupabaseConfigured) {
       boardStatus.textContent = 'Classement pas encore configuré.';
@@ -651,6 +676,7 @@
     if (insertAt === -1) {
       renderBoardRows(boardList, top, -1);
       boardStatus.textContent = `Hors du top ${LEADERBOARD_SIZE} cette fois (il fallait au moins ${top[top.length - 1].score} pts).`;
+      renderOutsideEntry(level, currentEntry);
       return;
     }
 
@@ -678,6 +704,55 @@
         nameEl.textContent = pseudo;
         form.replaceWith(nameEl);
         boardStatus.textContent = 'Score enregistré dans le classement !';
+      } catch {
+        button.disabled = false;
+        boardStatus.textContent = "Le score n'a pas pu être enregistré, réessaie.";
+      }
+    });
+  }
+
+  // Score hors du top 10 : on propose quand même d'enregistrer le pseudo
+  // (pour suivre le nombre de joueurs), puis on affiche sa position réelle
+  // parmi tous les scores du niveau ("tu es 47e sur 312"). Affiché à part,
+  // sous le top 10 — jamais inséré comme une fausse ligne dedans puisque ce
+  // score n'y figure pas vraiment.
+  function renderOutsideEntry(level, currentEntry) {
+    boardOutsideEntry.hidden = false;
+    boardOutsideEntry.innerHTML = '';
+
+    const hint = document.createElement('p');
+    hint.className = 'outside-entry__hint';
+    hint.textContent = 'Enregistre quand même ton score pour connaître ta position :';
+    boardOutsideEntry.appendChild(hint);
+
+    const form = document.createElement('form');
+    form.className = 'you-form';
+    form.innerHTML = '<input maxlength="16" placeholder="Votre pseudo" aria-label="Votre pseudo" required>'
+      + '<button type="submit">Valider</button>';
+    boardOutsideEntry.appendChild(form);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = form.querySelector('input');
+      const pseudo = input.value.trim();
+      if (!pseudo) {
+        input.setCustomValidity('Entre un pseudo.');
+        input.reportValidity();
+        return;
+      }
+      input.setCustomValidity('');
+
+      const button = form.querySelector('button');
+      button.disabled = true;
+
+      try {
+        await submitScore(level.id, pseudo, currentEntry.score, currentEntry.moves, currentEntry.timeSeconds);
+        const { rank, total } = await fetchRank(level.id, currentEntry.score);
+        boardOutsideEntry.innerHTML = '';
+        const result = document.createElement('p');
+        result.className = 'outside-entry__rank';
+        result.textContent = `Score enregistré ! Tu es ${rank}${rank === 1 ? 'er' : 'e'} sur ${total} joueur${total > 1 ? 's' : ''}.`;
+        boardOutsideEntry.appendChild(result);
       } catch {
         button.disabled = false;
         boardStatus.textContent = "Le score n'a pas pu être enregistré, réessaie.";

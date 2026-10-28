@@ -585,6 +585,28 @@ body {
   margin-top: 8px;
 }
 
+/* Saisie du pseudo pour un score hors top 10 : réutilise le style de
+   .you-form (même input/bouton pill) mais affiché à part, sous le top 10 et
+   son statut, pas inséré comme une fausse ligne dans la liste. */
+.outside-entry {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(16,21,27,.15);
+  text-align: left;
+}
+
+.outside-entry__hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.outside-entry__rank {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ring-matched);
+}
+
 .modal__actions {
   display: flex;
   gap: 10px;
