@@ -187,6 +187,14 @@ body {
   border-color: var(--text);
 }
 
+.header__actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.btn__text-short { display: none; }
+
 /* ---------- Main / board ---------- */
 
 .main {
@@ -389,6 +397,49 @@ body {
 .modal__emoji { font-size: 40px; }
 .modal__title { font-size: 20px; font-weight: 700; }
 
+.modal__card--leaderboard { position: relative; }
+
+.modal__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal__close:hover { background: rgba(16,21,27,.08); color: var(--text); }
+
+/* Tabs niveau internes à la modale "Classement" : toujours sur une seule
+   ligne (comme dans le header), quelle que soit la taille d'écran, puisque
+   la carte de modale a une largeur fixe (max-width: 360px). */
+.leaderboard-levels {
+  width: 100%;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.leaderboard-levels .level-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .modal__stats {
   display: flex;
   gap: 24px;
@@ -553,9 +604,12 @@ body {
 
   .header__brand { order: 1; }
 
-  .header > .btn--primary { order: 2; }
+  .header > .header__actions { order: 2; gap: 8px; }
 
-  .levels {
+  /* Scopé au header : la modale "Classement" réutilise .levels pour ses
+     tabs internes et ne doit pas hériter de cet ordre (sinon les tabs se
+     retrouvent envoyés en bas de la modale, après le top 10 et "Fermer"). */
+  .header .levels {
     order: 3;
     width: 100%;
     flex-wrap: nowrap;
@@ -633,6 +687,18 @@ body {
   }
 
   .btn--primary .btn__label { display: none; }
+
+  /* Le bouton "Classement" garde du texte (pas d'icône dédiée : pas d'emoji
+     dans l'UI) mais passe sur un libellé court pour tenir à côté du bouton
+     "Nouvelle partie" devenu icône seule. */
+  .btn--ghost {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .btn__text-full { display: none; }
+  .btn__text-short { display: inline; }
 
   .main { padding: 8px 10px; }
 

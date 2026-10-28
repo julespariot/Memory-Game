@@ -104,6 +104,51 @@ Top 10 par niveau, visible par tous les joueurs, avec saisie d'un pseudo depuis 
   ```
 - **Implication légale** : une fois les identifiants branchés, ça collecte réellement pseudo + score côté serveur → active la section RGPD déjà rédigée dans `legal/confidentialite.html` (actuellement marquée "à adapter" en attendant cette mise en service).
 
+### Suivi des parties jouées / joueurs uniques (Supabase) — table `game_plays` à créer
+
+La table `scores` ne capture qu'une partie qui rentre dans le top 10 d'un niveau (et seulement si le joueur saisit un pseudo) — elle ne dit donc rien du nombre réel de parties jouées. `game_plays` enregistre **toutes** les parties menées jusqu'à la victoire, avec un identifiant anonyme de joueur, pour répondre à "combien de joueurs uniques / combien de parties".
+
+- **Implémenté côté code** (`script.js`, section "Suivi des parties jouées (Supabase)") :
+  - `getOrCreatePlayerId()` : génère un UUID anonyme (`crypto.randomUUID()`, avec repli si indisponible) stocké en `localStorage` (clé `memorygame:playerId`) la première fois, puis réutilisé. Identifie un **navigateur/appareil**, pas une personne — se réinitialise en navigation privée, sur un autre navigateur/appareil, ou si le joueur vide son stockage local. Donc "joueurs uniques" ici reste une approximation, jamais un compte exact de personnes.
+  - `recordGamePlayed(levelId, score, moves, timeSeconds)` : insertion `game_plays`, appelée à la fin de `showWinModal()` (donc à chaque partie **terminée**, indépendamment du classement). Best-effort : erreurs avalées, ne bloque jamais l'affichage de la modale de victoire.
+  - **Limite connue** : seules les parties menées jusqu'à la victoire sont comptées. Le memory n'a pas d'état de "défaite", donc une partie commencée puis abandonnée (le joueur ferme l'onglet, change de niveau en cours de partie) n'est pas enregistrée — pas de moyen fiable de le détecter côté client sans complexifier le suivi (beacon `visibilitychange`/`unload`). À réévaluer si on a besoin du taux d'abandon.
+- **Reste à faire côté Supabase** (SQL à exécuter dans le dashboard, SQL Editor) :
+  ```sql
+  create table public.game_plays (
+    id uuid primary key default gen_random_uuid(),
+    player_id uuid not null,
+    level_id integer not null check (level_id in (1, 2, 3)),
+    score integer not null check (
+      (level_id = 1 and score <= 1000) or
+      (level_id = 2 and score <= 1800) or
+      (level_id = 3 and score <= 2800)
+    ),
+    moves integer not null check (moves > 0),
+    time_seconds integer not null check (time_seconds > 0),
+    created_at timestamptz not null default now()
+  );
+
+  alter table public.game_plays enable row level security;
+
+  create policy "Insertion publique" on public.game_plays for insert with check (true);
+  ```
+  Volontairement **pas** de policy `select` publique (contrairement à `scores`) : cette table ne doit être lisible que depuis le SQL Editor / Table Editor du dashboard Supabase (qui passe par-dessus les RLS), pas depuis le site par n'importe quel visiteur via la clé anon — ces chiffres d'usage ne regardent que l'éditeur du site.
+- **Pour consulter les chiffres** une fois la table créée, dans le SQL Editor Supabase :
+  ```sql
+  -- Nombre total de parties jouées (toutes terminées)
+  select count(*) from public.game_plays;
+
+  -- Joueurs uniques approximatifs (par appareil/navigateur)
+  select count(distinct player_id) from public.game_plays;
+
+  -- Détail par niveau
+  select level_id, count(*) as parties, count(distinct player_id) as joueurs_uniques
+  from public.game_plays
+  group by level_id
+  order by level_id;
+  ```
+- **Implication légale** : `player_id` est un identifiant anonyme généré côté client (pas d'email, pas de nom), mais reste une donnée technique liée à un appareil au sens RGPD au sens large — à mentionner dans `legal/confidentialite.html` au même titre que les scores si la section RGPD est complétée.
+
 ## État / suivi
 
 - [x] Jeu fonctionnel niveaux 1, 2 et 3.
@@ -117,6 +162,7 @@ Top 10 par niveau, visible par tous les joueurs, avec saisie d'un pseudo depuis 
 - [x] **Mise en ligne** : site déployé via GitHub Pages (Settings → Pages, branche `main`, racine `/`), domaine personnalisé `memory.juliolebarbo.com` (sous-domaine de l'e-shop `juliolebarbo.com`, DNS géré chez IONOS — enregistrement CNAME `memory` → `julespariot.github.io.`), HTTPS actif (certificat Let's Encrypt, "Enforce HTTPS" coché). Le fichier `CNAME` à la racine du repo gère ce rattachement — ne pas le supprimer sans reconfigurer le domaine dans Settings → Pages.
 - [x] **Pages légales reliées au site** : footer ajouté dans `index.html` (liens vers les 3 pages `legal/`). Éditeur = Jules Pariot, auto-entrepreneur, contact `juliolebarbo@gmail.com` ; hébergeur = GitHub Pages ; hébergement des données du classement = Supabase (région Europe). Renseigné dans `mentions-legales.html` et `confidentialite.html`.
 - [ ] **Mentions légales encore incomplètes** : il manque l'adresse de l'activité et le numéro SIRET de l'auto-entreprise (obligatoires pour une activité professionnelle, loi LCEN art. 6-III) — signalés par un bandeau `[À COMPLÉTER]` dans `legal/mentions-legales.html`.
+- [ ] **Suivi des parties jouées (table `game_plays`)** : code en place dans `script.js` (`recordGamePlayed`, voir section dédiée ci-dessus), mais la table n'existe pas encore côté Supabase — tant qu'elle n'est pas créée avec le SQL fourni, l'insert échoue silencieusement (best-effort, aucun impact sur le jeu) et rien n'est compté.
 - [ ] `.wireframes-scratch/` : dossier de travail issu de l'analyse de la maquette d'origine, peut être supprimé si plus utile.
 
 ## Notes de session

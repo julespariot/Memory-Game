@@ -56,10 +56,16 @@
       </div>
     </div>
 
-    <button type="button" class="btn btn--primary" id="newGameBtn" aria-label="Nouvelle partie">
-      <span class="btn__icon" aria-hidden="true">↻</span>
-      <span class="btn__label">Nouvelle partie</span>
-    </button>
+    <div class="header__actions">
+      <button type="button" class="btn btn--ghost" id="leaderboardBtn">
+        <span class="btn__text-full">Classement</span>
+        <span class="btn__text-short">Top 10</span>
+      </button>
+      <button type="button" class="btn btn--primary" id="newGameBtn" aria-label="Nouvelle partie">
+        <span class="btn__icon" aria-hidden="true">↻</span>
+        <span class="btn__label">Nouvelle partie</span>
+      </button>
+    </div>
   </header>
 
   <main class="main">
@@ -110,6 +116,25 @@
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" id="modalCloseBtn">Fermer</button>
         <button type="button" class="btn btn--primary" id="modalReplayBtn">Rejouer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="leaderboardModal" hidden>
+    <div class="modal__card modal__card--leaderboard">
+      <button type="button" class="modal__close" id="leaderboardCloseBtn" aria-label="Fermer le classement">×</button>
+
+      <h2 class="modal__title">Classement</h2>
+
+      <nav class="levels leaderboard-levels" aria-label="Niveau du classement" id="leaderboardLevels"></nav>
+
+      <div class="board-section" id="leaderboardBoardSection">
+        <div class="board-heading">
+          <h3>Top 10 — <span id="leaderboardLevelLabel"></span></h3>
+          <span>Tous les joueurs</span>
+        </div>
+        <div class="board-list" id="leaderboardBoardList"></div>
+        <p class="board-status" id="leaderboardBoardStatus" aria-live="polite"></p>
       </div>
     </div>
   </div>

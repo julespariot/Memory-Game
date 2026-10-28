@@ -67,6 +67,54 @@
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 
+  // ---------- Suivi des parties jouées (Supabase) ----------
+  // Contrairement à `scores` (qui ne garde que les scores entrant dans le top
+  // 10), `game_plays` enregistre CHAQUE partie terminée, pour pouvoir compter
+  // le nombre de parties jouées et un nombre de "joueurs uniques" approximatif.
+  // L'identifiant est anonyme (aucune donnée perso), généré une fois par
+  // navigateur et stocké en localStorage : il identifie un appareil/navigateur,
+  // pas une personne (se réinitialise en navigation privée, autre navigateur,
+  // autre appareil, ou si le joueur vide son stockage local).
+  const PLAYER_ID_STORAGE_KEY = 'memorygame:playerId';
+
+  function getOrCreatePlayerId() {
+    try {
+      let id = localStorage.getItem(PLAYER_ID_STORAGE_KEY);
+      if (!id) {
+        id = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+          });
+        localStorage.setItem(PLAYER_ID_STORAGE_KEY, id);
+      }
+      return id;
+    } catch {
+      return null; // Stockage indisponible (navigation privée stricte, etc.).
+    }
+  }
+
+  // Best-effort : un souci réseau ou de config ne doit jamais empêcher
+  // d'afficher la modale de victoire, donc on avale les erreurs ici.
+  async function recordGamePlayed(levelId, score, moves, timeSeconds) {
+    if (!isSupabaseConfigured) return;
+    const playerId = getOrCreatePlayerId();
+    if (!playerId) return;
+    try {
+      await supabaseClient.from('game_plays').insert({
+        player_id: playerId,
+        level_id: levelId,
+        score,
+        moves,
+        time_seconds: timeSeconds,
+      });
+    } catch {
+      // Le suivi est un bonus, pas une fonctionnalité critique : on ignore.
+    }
+  }
+
   // ---------- DOM refs ----------
   const main = document.querySelector('.main');
   const levelsNav = document.getElementById('levels');
@@ -78,6 +126,14 @@
   const starsEl = document.getElementById('stars');
   const pointsEl = document.getElementById('points');
   const newGameBtn = document.getElementById('newGameBtn');
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+
+  const leaderboardModal = document.getElementById('leaderboardModal');
+  const leaderboardLevelsNav = document.getElementById('leaderboardLevels');
+  const leaderboardLevelLabel = document.getElementById('leaderboardLevelLabel');
+  const leaderboardBoardList = document.getElementById('leaderboardBoardList');
+  const leaderboardBoardStatus = document.getElementById('leaderboardBoardStatus');
+  const leaderboardCloseBtn = document.getElementById('leaderboardCloseBtn');
 
   const winModal = document.getElementById('winModal');
   const modalTime = document.getElementById('modalTime');
@@ -104,9 +160,16 @@
   let gameStarted = false;
   // Paire fautive en attente de retournement (pour le fast-forward).
   let pendingMismatch = null;
+  // Niveau affiché dans la modale "Classement" (ouvrable sans finir de partie,
+  // donc distinct du niveau en cours de jeu currentLevelId).
+  let currentLeaderboardLevelId = currentLevelId;
 
   function currentLevel() {
     return LEVELS.find((l) => l.id === currentLevelId);
+  }
+
+  function findLevel(id) {
+    return LEVELS.find((l) => l.id === id);
   }
 
   // ---------- Utils ----------
@@ -514,12 +577,14 @@
   }
 
   // ---------- Classement : rendu ----------
-  // `rows` : lignes à afficher (classement + éventuellement l'entrée du joueur
-  // en cours, pas encore enregistrée). `youIndex` : position de cette entrée
-  // dans `rows`, ou -1 si aucune. `onSubmit` : appelé quand le joueur valide
-  // son pseudo pour la ligne "vous".
-  function renderBoardRows(rows, youIndex, onSubmit) {
-    boardList.innerHTML = '';
+  // `listEl` : conteneur cible (celui de la modale de victoire ou celui de la
+  // modale "Classement" consultable librement). `rows` : lignes à afficher
+  // (classement + éventuellement l'entrée du joueur en cours, pas encore
+  // enregistrée). `youIndex` : position de cette entrée dans `rows`, ou -1 si
+  // aucune. `onSubmit` : appelé quand le joueur valide son pseudo pour la
+  // ligne "vous".
+  function renderBoardRows(listEl, rows, youIndex, onSubmit) {
+    listEl.innerHTML = '';
     rows.forEach((row, i) => {
       const rowEl = document.createElement('div');
       rowEl.className = i === youIndex ? 'row you' : 'row';
@@ -551,7 +616,7 @@
       scoreEl.textContent = String(row.score);
       rowEl.appendChild(scoreEl);
 
-      boardList.appendChild(rowEl);
+      listEl.appendChild(rowEl);
     });
   }
 
@@ -584,7 +649,7 @@
     if (insertAt === -1 && top.length < LEADERBOARD_SIZE) insertAt = top.length;
 
     if (insertAt === -1) {
-      renderBoardRows(top, -1);
+      renderBoardRows(boardList, top, -1);
       boardStatus.textContent = `Hors du top ${LEADERBOARD_SIZE} cette fois (il fallait au moins ${top[top.length - 1].score} pts).`;
       return;
     }
@@ -593,7 +658,7 @@
     merged.splice(insertAt, 0, { pseudo: '', score: currentEntry.score });
     const trimmed = merged.slice(0, LEADERBOARD_SIZE);
 
-    renderBoardRows(trimmed, insertAt, async (form) => {
+    renderBoardRows(boardList, trimmed, insertAt, async (form) => {
       const input = form.querySelector('input');
       const pseudo = input.value.trim();
       if (!pseudo) {
@@ -618,6 +683,100 @@
         boardStatus.textContent = "Le score n'a pas pu être enregistré, réessaie.";
       }
     });
+  }
+
+  // ---------- Classement : modale de consultation libre ----------
+  // Permet de voir le top 10 de n'importe quel niveau sans avoir à le
+  // terminer. Des tabs niveau internes à la modale (currentLeaderboardLevelId)
+  // le permettent sans toucher au niveau en cours de jeu (currentLevelId).
+  // Libellé volontairement simplifié ("Niveau 1" plutôt que "Niveau 1 ·
+  // Facile") pour que les 3 tabs tiennent sur une ligne dans la modale.
+  function leaderboardLevelName(level) {
+    return `Niveau ${level.id}`;
+  }
+
+  function renderLeaderboardTabs() {
+    leaderboardLevelsNav.innerHTML = '';
+    LEVELS.filter((level) => level.images.length > 0).forEach((level) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'level-btn';
+      btn.style.setProperty('--level-color', level.color);
+      btn.style.setProperty('--level-text-on-active', level.textOnActive);
+
+      btn.setAttribute('aria-pressed', String(level.id === currentLeaderboardLevelId));
+      btn.textContent = leaderboardLevelName(level);
+
+      btn.addEventListener('click', () => {
+        if (currentLeaderboardLevelId === level.id) return;
+        currentLeaderboardLevelId = level.id;
+        renderLeaderboardTabs();
+        loadLeaderboardView(level);
+      });
+
+      leaderboardLevelsNav.appendChild(btn);
+    });
+  }
+
+  // Ne vide/reconstruit PAS la liste avant la réponse : en changeant vite de
+  // tab niveau, ça donnait un flash de liste vide entre chaque clic (effet
+  // "la fenêtre se ferme et se rouvre"). On garde l'ancien contenu affiché
+  // pendant le chargement et on ne le remplace qu'une fois la réponse prête.
+  async function loadLeaderboardView(level) {
+    leaderboardLevelLabel.textContent = leaderboardLevelName(level);
+
+    if (!isSupabaseConfigured) {
+      leaderboardBoardList.innerHTML = '';
+      leaderboardBoardStatus.textContent = 'Classement pas encore configuré.';
+      return;
+    }
+
+    let top;
+    try {
+      top = await fetchTopScores(level.id);
+    } catch {
+      // Si le joueur a déjà changé de tab entre-temps, cette erreur ne
+      // concerne plus le niveau affiché : on l'ignore pour ne pas écraser
+      // le contenu (valide) du niveau sur lequel il est maintenant.
+      if (level.id !== currentLeaderboardLevelId) return;
+      leaderboardBoardList.innerHTML = '';
+      leaderboardBoardStatus.textContent = 'Classement indisponible pour le moment.';
+      return;
+    }
+
+    // Idem si un changement de tab plus récent est arrivé en premier pendant
+    // ce chargement : cette réponse est obsolète, on ne l'affiche pas.
+    if (level.id !== currentLeaderboardLevelId) return;
+
+    renderBoardRows(leaderboardBoardList, top, -1);
+    leaderboardBoardStatus.textContent = top.length ? '' : 'Pas encore de score pour ce niveau.';
+  }
+
+  // Le chrono de la partie en cours ne doit pas continuer à tourner pendant
+  // que le joueur consulte le classement. On ne le relance à la fermeture
+  // que s'il tournait déjà à l'ouverture (pas de partie en cours = rien à
+  // reprendre, partie déjà gagnée = stoppé par checkWin, pas à relancer).
+  let timerWasRunningBeforeLeaderboard = false;
+
+  function openLeaderboardModal() {
+    currentLeaderboardLevelId = currentLevelId;
+    renderLeaderboardTabs();
+    loadLeaderboardView(findLevel(currentLeaderboardLevelId));
+
+    timerWasRunningBeforeLeaderboard = Boolean(timerHandle);
+    stopTimer();
+
+    // Même précaution que la modale de victoire contre un pinch-zoom resté actif.
+    window.scrollTo(0, 0);
+    leaderboardModal.hidden = false;
+  }
+
+  function hideLeaderboardModal() {
+    leaderboardModal.hidden = true;
+    if (timerWasRunningBeforeLeaderboard) {
+      timerWasRunningBeforeLeaderboard = false;
+      startTimer();
+    }
   }
 
   // ---------- Win modal ----------
@@ -654,6 +813,7 @@
     window.scrollTo(0, 0);
     winModal.hidden = false;
     loadLeaderboard(level, { score, moves, timeSeconds: timerSeconds });
+    recordGamePlayed(level.id, score, moves, timerSeconds);
   }
 
   function hideWinModal() {
@@ -662,6 +822,8 @@
 
   // ---------- Events ----------
   newGameBtn.addEventListener('click', startLevel);
+  leaderboardBtn.addEventListener('click', openLeaderboardModal);
+  leaderboardCloseBtn.addEventListener('click', hideLeaderboardModal);
   modalCloseBtn.addEventListener('click', hideWinModal);
   modalReplayBtn.addEventListener('click', () => {
     hideWinModal();
